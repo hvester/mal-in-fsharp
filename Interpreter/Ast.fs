@@ -45,7 +45,7 @@ module rec AstTypes =
     type Ast =
         | Nil
         | Boolean of bool
-        | Number of float
+        | Integer of int
         | Symbol of string
         | String of string
         | Keyword of KeywordString
@@ -65,7 +65,7 @@ module rec AstTypes =
             match this with
             | Nil -> "nil"
             | Boolean b -> if b then "true" else "false"
-            | Number x -> string x
+            | Integer i -> string i
             | Symbol s -> s
             | String s -> formatString s
             | Keyword keyword -> string keyword

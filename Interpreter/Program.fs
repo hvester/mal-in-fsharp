@@ -2,26 +2,18 @@
 
 module Program =
 
-    let eval x = x
-
-    let print (asts : Ast list) =
+    let print (asts: Ast list) =
         String.concat "\n" (asts |> List.map string)
 
     let rep input =
-        match Parser.read input with
-        | Ok asts -> asts |> eval |> print |> Ok
-        | Error e -> Error e 
-
-    let outputResultToString result =
-        match result with
-        | Ok output -> output
-        | Error error -> sprintf "ERROR: %s" error
+        try
+            Parser.read input |> Evaluator.eval |> print
+        with
+        | Parser.ParsingError msg -> $"Parsing error: {msg}"
+        | Evaluator.EvaluationError msg -> $"Evaluation error: {msg}"
 
     [<EntryPoint>]
-    let main (args: string[]) =
+    let main (args: string []) =
         printf "user>"
-        System.Console.ReadLine()
-        |> rep
-        |> outputResultToString
-        |> printfn "%s"
+        System.Console.ReadLine() |> rep |> printfn "%s"
         0

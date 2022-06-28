@@ -18,7 +18,7 @@ module Parser =
         stringReturn "true" (Ast.Boolean true)
         <|> stringReturn "false" (Ast.Boolean false)
 
-    let pNumber: Parser<_, unit> = pfloat |>> Ast.Number
+    let pInteger: Parser<_, unit> = pint32 |>> Ast.Integer
 
     let pSymbol = pNonSpecialString |>> Ast.Symbol
 
@@ -83,14 +83,13 @@ module Parser =
         pQuoteConstructor .>>. pAst
         |>> fun (constructor, ast) -> constructor ast
 
-    let pDeref =
-        skipChar '@' >>. pAst |>> Ast.Deref
+    let pDeref = skipChar '@' >>. pAst |>> Ast.Deref
 
     do
         pAstRef
         := choice [ pNil
                     pBoolean
-                    pNumber
+                    pInteger
                     pStr
                     pKeyword
                     pList
@@ -100,7 +99,9 @@ module Parser =
                     pDeref
                     pSymbol ]
 
+    exception ParsingError of string
+
     let read (str: string) =
         match run pAstList str with
-        | Success (astList, _, _) -> Result.Ok astList
-        | Failure (_, error, _) -> Result.Error(string error)
+        | Success (astList, _, _) -> astList
+        | Failure (errorMessage, _, _) -> raise (ParsingError(errorMessage))
