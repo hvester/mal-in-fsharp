@@ -99,7 +99,6 @@ module Parser =
                     pDeref
                     pSymbol ]
 
-    exception ParsingError of string
 
     let read (str: string) =
         match run pAstList str with

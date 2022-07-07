@@ -52,6 +52,7 @@ module rec AstTypes =
         | Vector of Ast list
         | HashMap of HashMap
         | List of Ast list
+        | Function of (Ast list -> Ast)
         | Quote of Ast
         | Quasiquote of Ast
         | Unquote of Ast
@@ -72,8 +73,27 @@ module rec AstTypes =
             | Vector asts -> $"[{formatAstList asts}]"
             | HashMap hashMap -> string hashMap
             | List asts -> $"({formatAstList asts})"
+            | Function _ -> "#<function>"
             | Quote ast -> $"(quote {string ast})"
             | Quasiquote ast -> $"(quasiquote {string ast})"
             | Unquote ast -> $"(unquote {string ast})"
             | SpliceUnquote ast -> $"(splice-unquote {string ast})"
             | Deref ast -> $"(deref {string ast})"
+
+
+module Ast =
+
+    let getIntegerValue ast =
+        match ast with
+        | Ast.Integer i -> i
+        | _ -> raise (EvaluationError $"Expected an integer but got {string ast}")
+
+    let getSymbolName ast =
+        match ast with
+        | Ast.Symbol symbolName -> symbolName
+        | _ -> raise (EvaluationError $"Expected a symbol but got {string ast}")
+
+    let getListElements ast =
+        match ast with
+        | Ast.List xs -> xs
+        | _ -> raise (EvaluationError $"Expected a list but got {string ast}")

@@ -6,10 +6,14 @@ open Xunit
 
 module TestCaseRunner =
 
+    type ExpectedOutput =
+        | ExactOutput of string
+        | ShouldMatchRegex of string
 
     type TestCase =
         { Inputs: string list
-          ExpectedOutput: Result<string, string> }
+          ExpectedPrint: ExpectedOutput list
+          ExpectedResult: ExpectedOutput }
 
     type TestSection =
         { Header: string
@@ -22,13 +26,13 @@ module TestCaseRunner =
 
         let pTestSectionHeader: Parser<string, unit> = skipString ";;" >>. restOfLine true
 
-        let pExpectedOutput =
+        let pExactOutput =
             skipString ";=>" >>. restOfLine true
-            |>> (fun str -> str.Replace(@"\n", "\n") |> Result.Ok)
+            |>> (fun str -> str.Replace(@"\n", "\n") |> ExactOutput)
 
-        let pExpectedError =
+        let pShouldMatchRegex =
             skipString ";/" >>. restOfLine true
-            |>> Result.Error
+            |>> ShouldMatchRegex
 
         let pEmptyLine: Parser<unit, unit> =
             attempt (many (anyOf [ ' '; '\t' ]) >>. skipChar '\n')
@@ -42,10 +46,11 @@ module TestCaseRunner =
                  )
                  >>. restOfLine false)
                 (pchar '\n')
-            .>>. (pExpectedOutput <|> pExpectedError)
-            |>> (fun (inputs, expectedOutput) ->
+            .>>. (many1 (pExactOutput <|> pShouldMatchRegex))
+            |>> (fun (inputs, outputs) ->
                 { Inputs = inputs
-                  ExpectedOutput = expectedOutput })
+                  ExpectedPrint = outputs[.. outputs.Length - 2]
+                  ExpectedResult = List.last outputs })
 
         let pCommentLine: Parser<unit, unit> = skipString ";;;" .>> skipRestOfLine true
 
@@ -83,26 +88,29 @@ module TestCaseRunner =
 
         (sectionsBefore, testSection)
 
+    let assertCorrectOutput expectedOutput output =
+        match expectedOutput with
+        | ExactOutput expectedExactOutput -> Assert.Equal(expectedExactOutput, output)
+        | ShouldMatchRegex regex -> Assert.Matches(regex, output)
+
     let runParseTestSection testSet sectionHeader =
         let _, testSection = getTestSection testSet sectionHeader
 
         for testCase in testSection.TestCases do
-            try
-                let output =
+            let output =
+                try
                     testCase.Inputs
-                    |> String.concat "\n"
+                    |> List.exactlyOne
                     |> Parser.read
-                    |> List.map string
-                    |> String.concat " "
+                    |> function
+                        | [] -> ""
+                        | [ast] -> string ast
+                        | _ -> failwith "Got more than one AST"
+                with
+                | ParsingError msg -> msg
 
-                match testCase.ExpectedOutput with
-                | Ok expectedOutput -> Assert.Equal(expectedOutput, string output)
-                | Error _ -> failwithf "Expected an error, got %s" output
-            with
-            | Parser.ParsingError _ ->
-                match testCase.ExpectedOutput with
-                | Error _ -> ()
-                | Ok _ -> failwith "Parsing should have succeeded"
+            assertCorrectOutput testCase.ExpectedResult output
+
 
     let runTestSection testSet sectionHeader =
         let sectionsBefore, testSection = getTestSection testSet sectionHeader
@@ -110,8 +118,8 @@ module TestCaseRunner =
 
         for section in sectionsBefore do
             for testCase in section.TestCases do
-                interpreter.Rep(String.concat "\n" testCase.Inputs)
-                |> ignore
+                for input in testCase.Inputs do
+                    interpreter.Rep(input) |> ignore
 
         for testCase in testSection.TestCases do
             let mutable output = ""
@@ -119,6 +127,4 @@ module TestCaseRunner =
             for input in testCase.Inputs do
                 output <- interpreter.Rep(input)
 
-            match testCase.ExpectedOutput with
-            | Ok expectedOutput -> Assert.Equal(expectedOutput, output)
-            | Error _ -> Assert.Contains("error", output)
+            assertCorrectOutput testCase.ExpectedResult output

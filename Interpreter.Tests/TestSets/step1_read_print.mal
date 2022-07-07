@@ -134,23 +134,23 @@ false
 
 ;; Testing reader errors
 (1 2
-;/.*(EOF|end of input|unbalanced).*
+;/.*(E|e)rror.*
 [1 2
-;/.*(EOF|end of input|unbalanced).*
+;/.*(E|e)rror.*
 
 ;; These should throw some error with no return value
 "abc
-;/.*(EOF|end of input|unbalanced).*
+;/.*(E|e)rror.*
 "
-;/.*(EOF|end of input|unbalanced).*
+;/.*(E|e)rror.*
 "\"
-;/.*(EOF|end of input|unbalanced).*
+;/.*(E|e)rror.*
 "\\\\\\\\\\\\\\\\\\\"
-;/.*(EOF|end of input|unbalanced).*
+;/.*(E|e)rror.*
 (1 "abc
-;/.*(EOF|end of input|unbalanced).*
+;/.*(E|e)rror.*
 (1 "abc"
-;/.*(EOF|end of input|unbalanced).*
+;/.*(E|e)rror.*
 
 ;; Testing read of quoting
 '1

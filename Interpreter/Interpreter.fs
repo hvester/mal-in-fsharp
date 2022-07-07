@@ -13,5 +13,5 @@ type Interpreter() =
         try
             Parser.read input |> Evaluator.eval env |> print
         with
-        | Parser.ParsingError msg -> $"Parsing error: {msg}"
-        | Evaluator.EvaluationError msg -> $"Evaluation error: {msg}"
+        | ParsingError msg -> $"Parsing error: {msg}"
+        | EvaluationError msg -> $"Evaluation error: {msg}"
