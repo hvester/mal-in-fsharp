@@ -8,7 +8,7 @@ module TestCaseRunner =
 
 
     type TestCase =
-        { Input: string
+        { Inputs: string list
           ExpectedOutput: Result<string, string> }
 
     type TestSection =
@@ -30,11 +30,21 @@ module TestCaseRunner =
             skipString ";/" >>. restOfLine true
             |>> Result.Error
 
+        let pEmptyLine: Parser<unit, unit> =
+            attempt (many (anyOf [ ' '; '\t' ]) >>. skipChar '\n')
+
         let pTestCase: Parser<TestCase, unit> =
-            restOfLine true
+            sepEndBy1
+                (notFollowedBy (
+                    skipString ";=>"
+                    <|> skipString ";/"
+                    <|> pEmptyLine
+                 )
+                 >>. restOfLine false)
+                (pchar '\n')
             .>>. (pExpectedOutput <|> pExpectedError)
-            |>> (fun (input, expectedOutput) ->
-                { Input = input
+            |>> (fun (inputs, expectedOutput) ->
+                { Inputs = inputs
                   ExpectedOutput = expectedOutput })
 
         let pCommentLine: Parser<unit, unit> = skipString ";;;" .>> skipRestOfLine true
@@ -44,17 +54,17 @@ module TestCaseRunner =
             >>. (sepEndBy1 (attempt pTestCase) (many pCommentLine))
 
         let pTestSection =
-            pTestSectionHeader .>>. pTestCaseList .>> spaces
+            pTestSectionHeader .>>. pTestCaseList
             |>> (fun (header, testCases) ->
                 { Header = header.Trim()
                   TestCases = testCases })
 
-        let pTestSet = many1 pTestSection .>> spaces
+        let pTestSet = sepEndBy1 pTestSection (many1 pEmptyLine)
 
         let parseTestCases filePath =
             let fileContent = File.ReadAllText(filePath)
 
-            match run pTestSet fileContent with
+            match run (pTestSet .>> spaces .>> eof) fileContent with
             | Success (testSet, _, _) -> testSet
             | Failure (_, error, _) -> failwith (string error)
 
@@ -63,15 +73,27 @@ module TestCaseRunner =
         lazy (TestCaseParser.parseTestCases filePath)
 
     let private getTestSection (testSet: Lazy<TestSection list>) header =
-        testSet.Value
-        |> List.find (fun x -> x.Header = header)
+        let sectionsBefore =
+            testSet.Value
+            |> List.takeWhile (fun x -> x.Header <> header)
+
+        let testSection =
+            testSet.Value
+            |> List.find (fun x -> x.Header = header)
+
+        (sectionsBefore, testSection)
 
     let runParseTestSection testSet sectionHeader =
-        let testSection = getTestSection testSet sectionHeader
+        let _, testSection = getTestSection testSet sectionHeader
 
         for testCase in testSection.TestCases do
             try
-                let output = Parser.read testCase.Input |> Program.print
+                let output =
+                    testCase.Inputs
+                    |> String.concat "\n"
+                    |> Parser.read
+                    |> List.map string
+                    |> String.concat " "
 
                 match testCase.ExpectedOutput with
                 | Ok expectedOutput -> Assert.Equal(expectedOutput, string output)
@@ -83,20 +105,20 @@ module TestCaseRunner =
                 | Ok _ -> failwith "Parsing should have succeeded"
 
     let runTestSection testSet sectionHeader =
-        let testSection = getTestSection testSet sectionHeader
+        let sectionsBefore, testSection = getTestSection testSet sectionHeader
+        let interpreter = Interpreter()
+
+        for section in sectionsBefore do
+            for testCase in section.TestCases do
+                interpreter.Rep(String.concat "\n" testCase.Inputs)
+                |> ignore
 
         for testCase in testSection.TestCases do
-            try
-                let output =
-                    Parser.read testCase.Input
-                    |> Evaluator.eval
-                    |> Program.print
+            let mutable output = ""
 
-                match testCase.ExpectedOutput with
-                | Ok expectedOutput -> Assert.Equal(expectedOutput, string output)
-                | Error _ -> failwithf "Expected an error, got %s" output
-            with
-            | Evaluator.EvaluationError _ ->
-                match testCase.ExpectedOutput with
-                | Error _ -> ()
-                | Ok _ -> failwith "Evaluation should have succeeded"
+            for input in testCase.Inputs do
+                output <- interpreter.Rep(input)
+
+            match testCase.ExpectedOutput with
+            | Ok expectedOutput -> Assert.Equal(expectedOutput, output)
+            | Error _ -> Assert.Contains("error", output)

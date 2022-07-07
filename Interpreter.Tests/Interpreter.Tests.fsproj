@@ -8,6 +8,7 @@
     <Compile Include="TestCaseRunner.fs" />
     <Compile Include="ReadPrintTests.fs" />
     <Compile Include="EvalTests.fs" />
+    <Compile Include="EnvTests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

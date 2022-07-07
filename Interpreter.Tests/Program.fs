@@ -11,6 +11,16 @@ module Program =
             Path.Combine(__SOURCE_DIRECTORY__, filePath)
             |> getTestSet        
         for tc in testSet.Value do
+            (*
+            printfn $"{tc.Header}"
+
+            for x in tc.TestCases do
+                printfn "Inputs:"
+                for inp in x.Inputs do
+                    printfn "%s" inp
+                printfn "Expected output: %A" x.ExpectedOutput
+            *)
+
             printfn $"""
     [<Fact>]
     let ``{tc.Header}`` () =
