@@ -9,6 +9,12 @@ type Interpreter() =
         | None -> ""
         | Some ast -> string ast
 
+    do
+        "(def! not (fn* (x) (if x false true)))"
+        |> Parser.read
+        |> Evaluator.eval env
+        |> ignore
+
     member _.Rep(input: string) =
         try
             Parser.read input |> Evaluator.eval env |> print
