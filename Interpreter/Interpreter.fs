@@ -2,7 +2,7 @@ namespace Interpreter
 
 type Interpreter() =
 
-    let env = Evaluator.createInitialEnv ()
+    let env = Env.CreateInitial()
 
     let print (astOpt: Ast option) =
         match astOpt with
