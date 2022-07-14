@@ -104,11 +104,12 @@ module TestCaseRunner =
                     |> Parser.read
                     |> function
                         | [] -> ""
-                        | [ast] -> string ast
+                        | [ast] -> Printer.printAst true ast
                         | _ -> failwith "Got more than one AST"
                 with
                 | ParsingError msg -> msg
 
+            printfn "%s" output
             assertCorrectOutput testCase.ExpectedResult output
 
 

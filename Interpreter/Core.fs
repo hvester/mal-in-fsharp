@@ -5,10 +5,10 @@ module Core =
     let private integerOperation f asts =
         match asts with
         | []
-        | _ :: [] -> raise (EvaluationError $"Expected at least two arguments.")
+        | _ :: [] -> raise (ArgumentError "Expected at least two arguments.")
         | firstAst :: otherAsts ->
-            (Ast.getIntegerValue firstAst, otherAsts)
-            ||> List.fold (fun acc ast -> f acc (Ast.getIntegerValue ast))
+            (Ast.unwrapInteger firstAst, otherAsts)
+            ||> List.fold (fun acc ast -> f acc (Ast.unwrapInteger ast))
             |> Ast.Integer
 
     let add = integerOperation (fun x y -> x + y)
@@ -25,9 +25,9 @@ module Core =
 
     let isEmpty asts =
         match asts with
-        | [] -> raise (EvaluationError $"Expected at least one argument.")
+        | [] -> raise (ArgumentError "Expected at least one argument.")
         | ast :: _ ->
-            List.isEmpty (Ast.getListElements ast)
+            List.isEmpty (Ast.unwrapList ast)
             |> Ast.Boolean
 
     let count asts =
@@ -60,15 +60,15 @@ module Core =
 
         match asts with
         | []
-        | [ _ ] -> raise (EvaluationError $"Expected at least two arguments.")
+        | [ _ ] -> raise (ArgumentError "Expected at least two arguments.")
         | ast1 :: ast2 :: _ -> twoAreEqual ast1 ast2 |> Ast.Boolean
 
     let private integerComparison compare asts =
         match asts with
         | []
-        | [ _ ] -> raise (EvaluationError $"Expected at least two arguments.")
+        | [ _ ] -> raise (ArgumentError "Expected at least two arguments.")
         | ast1 :: ast2 :: _ ->
-            compare (Ast.getIntegerValue ast1) (Ast.getIntegerValue ast2)
+            compare (Ast.unwrapInteger ast1) (Ast.unwrapInteger ast2)
             |> Ast.Boolean
 
     let lessThan = integerComparison (<)
@@ -77,8 +77,10 @@ module Core =
     let greaterThanOrEqual = integerComparison (>=)
 
     let prn (asts: Ast list) =
-        match asts with
-        | [] -> raise (EvaluationError $"Expected one argument.")
-        | ast :: _ ->
-            printfn "%s" (string ast)
-            Ast.Nil
+        let output =
+            asts
+            |> List.map (Printer.printAst true)
+            |> String.concat " "
+
+        printfn "%s" output
+        Ast.Nil

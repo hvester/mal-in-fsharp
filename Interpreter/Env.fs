@@ -7,7 +7,7 @@ type Env private (outer: Env option) =
     let bindings = Dictionary<string, Ast>()
 
     member _.Set(symbol, ast) =
-        let symbolName = Ast.getSymbolName symbol
+        let symbolName = Ast.unwrapSymbol symbol
         bindings[symbolName] <- ast
 
     member _.Resolve(symbolName) =
@@ -16,7 +16,7 @@ type Env private (outer: Env option) =
         | false, _ ->
             match outer with
             | Some o -> o.Resolve(symbolName)
-            | None -> raise (EvaluationError $"{symbolName} not found")
+            | None -> raise (SymbolResolutionError symbolName)
 
     member this.CreateInner(symbols, values) =
         let innerEnv = Env(Some this)
@@ -24,7 +24,7 @@ type Env private (outer: Env option) =
         let rec loop =
             function
             | [], _ -> ()
-            | Ast.Symbol "&" :: [], _ -> raise (EvaluationError $"Encountered & without following symbol.")
+            | Ast.Symbol "&" as ast :: [], _ -> raise (EvaluationError("Encountered & without following symbol.", ast))
 
             | Ast.Symbol "&" :: restSymbol :: _, restValues -> innerEnv.Set(restSymbol, Ast.List restValues)
 

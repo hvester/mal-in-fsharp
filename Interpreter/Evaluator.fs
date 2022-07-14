@@ -2,7 +2,7 @@ namespace Interpreter
 
 module Evaluator =
 
-    let evalError msg = raise (EvaluationError(msg))
+    let evalError msg ast = raise (EvaluationError(msg, ast))
 
     let rec evalAst (env: Env) (ast: Ast) =
         match ast with
@@ -10,7 +10,8 @@ module Evaluator =
 
         | Ast.List asts ->
             match asts with
-            | [] -> ast
+            | [] ->
+             ast
 
             | Ast.Symbol "def!" :: asts ->
                 match asts with
@@ -18,7 +19,7 @@ module Evaluator =
                     let value = evalAst env valueAst
                     env.Set(symbol, value)
                     value
-                | _ -> evalError $"Invalid def!: {string ast}"
+                | _ -> evalError $"Invalid def!" ast
 
             | Ast.Symbol "let*" :: asts ->
                 match asts with
@@ -30,11 +31,11 @@ module Evaluator =
                     for bindingAsts in List.chunkBySize 2 bindingAstList do
                         match bindingAsts with
                         | [ symbol; valueAst ] -> innerEnv.Set(symbol, evalAst innerEnv valueAst)
-                        | _ -> evalError $"Invalid binding list in let*: {string ast}"
+                        | _ -> evalError "Invalid binding list in let*" ast
 
                     evalAst innerEnv bodyAst
 
-                | _ -> evalError $"Invalid let*: {string ast}"
+                | _ -> evalError $"Invalid let*" ast
 
             | Ast.Symbol "do" :: asts ->
                 (Ast.Nil, asts)
@@ -43,7 +44,7 @@ module Evaluator =
             | Ast.Symbol "if" :: asts ->
                 match asts with
                 | []
-                | [ _ ] -> evalError $"Expected at least condition and true branch expression."
+                | [ _ ] -> evalError "Expected at least condition and true branch expression" ast
                 | conditionAst :: trueBranchAst :: other ->
                     match evalAst env conditionAst with
                     | Ast.Nil
@@ -62,12 +63,12 @@ module Evaluator =
 
                     Ast.Function func
 
-                | _ -> evalError $"Invalid let*: {string ast}"
+                | _ -> evalError "Invalid let*" ast
 
             | operationAst :: argumentAsts ->
                 match evalAst env operationAst with
                 | Ast.Function func -> func (List.map (evalAst env) argumentAsts)
-                | _ -> evalError $"First list element should be a function: {string ast}"
+                | _ -> evalError "First list element should be a function" ast
 
         | Ast.Vector asts -> asts |> List.map (evalAst env) |> Ast.Vector
 

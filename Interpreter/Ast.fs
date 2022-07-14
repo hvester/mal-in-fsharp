@@ -3,43 +3,14 @@ namespace Interpreter
 [<AutoOpen>]
 module rec AstTypes =
 
-    let private formatString (str: string) =
-        let escaped =
-            str.ToCharArray()
-            |> Array.map (function
-                | '\\' -> @"\\"
-                | '"' -> "\\\""
-                | c -> string c)
-            |> String.concat ""
 
-        $"\"{escaped}\""
-
-    type KeywordString =
-        | KeywordString of string
-
-        override this.ToString() =
-            let (KeywordString s) = this
-            $":{s}"
+    type KeywordString = KeywordString of string
 
     type HashMapKey =
         | StringKey of string
         | KeywordKey of KeywordString
 
-        override this.ToString() =
-            match this with
-            | StringKey key -> formatString key
-            | KeywordKey key -> string key
-
-    type HashMap =
-        | HashMap of Map<HashMapKey, Ast>
-
-        override this.ToString() =
-            let (HashMap keyValuePairs) = this
-
-            keyValuePairs
-            |> Seq.map (fun (KeyValue (k, v)) -> $"{string k} {string v}")
-            |> String.concat " "
-            |> sprintf "{%s}"
+    type HashMap = HashMap of Map<HashMapKey, Ast>
 
     [<RequireQualifiedAccess>]
     type Ast =
@@ -59,41 +30,28 @@ module rec AstTypes =
         | SpliceUnquote of Ast
         | Deref of Ast
 
-        override this.ToString() =
-            let formatAstList (asts: Ast list) =
-                asts |> List.map string |> String.concat " "
+    exception ParsingError of message: string
 
-            match this with
-            | Nil -> "nil"
-            | Boolean b -> if b then "true" else "false"
-            | Integer i -> string i
-            | Symbol s -> s
-            | String s -> formatString s
-            | Keyword keyword -> string keyword
-            | Vector asts -> $"[{formatAstList asts}]"
-            | HashMap hashMap -> string hashMap
-            | List asts -> $"({formatAstList asts})"
-            | Function _ -> "#<function>"
-            | Quote ast -> $"(quote {string ast})"
-            | Quasiquote ast -> $"(quasiquote {string ast})"
-            | Unquote ast -> $"(unquote {string ast})"
-            | SpliceUnquote ast -> $"(splice-unquote {string ast})"
-            | Deref ast -> $"(deref {string ast})"
+    exception SymbolResolutionError of symbolName: string
+
+    exception ArgumentError of message: string
+
+    exception EvaluationError of message: string * invalidExpression: Ast
 
 
 module Ast =
 
-    let getIntegerValue ast =
+    let unwrapInteger ast =
         match ast with
         | Ast.Integer i -> i
-        | _ -> raise (EvaluationError $"Expected an integer but got {string ast}")
+        | _ -> raise (EvaluationError("Expected an integer.", ast))
 
-    let getSymbolName ast =
+    let unwrapSymbol ast =
         match ast with
         | Ast.Symbol symbolName -> symbolName
-        | _ -> raise (EvaluationError $"Expected a symbol but got {string ast}")
+        | _ -> raise (EvaluationError("Expected a symbol.", ast))
 
-    let getListElements ast =
+    let unwrapList ast =
         match ast with
         | Ast.List xs -> xs
-        | _ -> raise (EvaluationError $"Expected a list but got {string ast}")
+        | _ -> raise (EvaluationError("Expected a list.", ast))
