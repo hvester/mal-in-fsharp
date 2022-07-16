@@ -56,7 +56,7 @@ module Evaluator =
 
             | Ast.Symbol "fn*" :: asts ->
                 match asts with
-                | Ast.List argumentNameAsts :: bodyAst :: _ ->
+                | (Ast.Vector argumentNameAsts | Ast.List argumentNameAsts) :: bodyAst :: _ ->
                     let func argumentAsts =
                         let innerEnv = env.CreateInner(argumentNameAsts, argumentAsts)
                         evalAst innerEnv bodyAst

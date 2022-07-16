@@ -26,11 +26,14 @@ module Core =
     let isEmpty asts =
         match asts with
         | [] -> raise (ArgumentError "Expected at least one argument.")
-        | ast :: _ -> List.isEmpty (Ast.unwrapList ast) |> Ast.Boolean
+        | Ast.List xs :: _
+        | Ast.Vector xs :: _ -> List.isEmpty xs |> Ast.Boolean
+        | ast :: _ -> raise (EvaluationError("Expected a list or vector.", ast))
 
     let count asts =
         match asts with
-        | Ast.List xs :: _ -> List.length xs |> Ast.Integer
+        | Ast.List xs :: _
+        | Ast.Vector xs :: _ -> List.length xs |> Ast.Integer
         | _ -> Ast.Integer 0
 
     let areEqual asts =
@@ -41,8 +44,7 @@ module Core =
             | Ast.Integer x, Ast.Integer y -> x = y
             | Ast.String x, Ast.String y -> x = y
             | Ast.Keyword x, Ast.Keyword y -> x = y
-            | Ast.Vector xs, Ast.Vector ys
-            | Ast.List xs, Ast.List ys ->
+            | (Ast.Vector xs | Ast.List xs), (Ast.Vector ys | Ast.List ys) ->
                 List.length xs = List.length ys
                 && List.forall2 twoAreEqual xs ys
 
