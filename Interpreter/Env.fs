@@ -39,7 +39,7 @@ type Env private (outer: Env option) =
         loop (symbols, values)
         innerEnv
 
-    static member CreateInitial() =
+    static member CreateInitial(writeLine) =
         let env = Env(None)
 
         [ "+", Core.add
@@ -55,7 +55,10 @@ type Env private (outer: Env option) =
           "<=", Core.lessThanOrEqual
           ">", Core.greaterThan
           ">=", Core.greaterThanOrEqual
-          "prn", Core.prn ]
+          "pr-str", Core.prStr
+          "str", Core.str
+          "prn", Core.prn writeLine
+          "println", Core.println writeLine ]
         |> List.iter (fun (symbolName, func) -> env.Set(Ast.Symbol symbolName, Ast.Function func))
 
         env

@@ -28,7 +28,7 @@ module TestCaseRunner =
 
         let pExactOutput =
             skipString ";=>" >>. restOfLine true
-            |>> (fun str -> str.Replace(@"\n", "\n") |> ExactOutput)
+            |>> ExactOutput
 
         let pShouldMatchRegex =
             skipString ";/" >>. restOfLine true
@@ -104,18 +104,23 @@ module TestCaseRunner =
                     |> Parser.read
                     |> function
                         | [] -> ""
-                        | [ast] -> Printer.printAst true ast
+                        | [ ast ] -> Printer.printAst true ast
                         | _ -> failwith "Got more than one AST"
                 with
                 | ParsingError msg -> msg
 
-            printfn "%s" output
             assertCorrectOutput testCase.ExpectedResult output
 
 
     let runTestSection testSet sectionHeader =
         let sectionsBefore, testSection = getTestSection testSet sectionHeader
-        let interpreter = Interpreter()
+
+        let output = ResizeArray<string>()
+        let writeLine (line: string) =
+            for s in line.Split('\n') do
+                output.Add(s)
+
+        let interpreter = Interpreter(writeLine)
 
         for section in sectionsBefore do
             for testCase in section.TestCases do
@@ -123,9 +128,18 @@ module TestCaseRunner =
                     interpreter.Rep(input) |> ignore
 
         for testCase in testSection.TestCases do
-            let mutable output = ""
+            output.Clear()
 
-            for input in testCase.Inputs do
-                output <- interpreter.Rep(input)
+            let result =
+                ("", testCase.Inputs)
+                ||> List.fold (fun _ input -> interpreter.Rep(input))
 
-            assertCorrectOutput testCase.ExpectedResult output
+            Assert.True(
+                testCase.ExpectedPrint.Length = output.Count,
+                $"Wrong number of outputs. Expected: %A{testCase.ExpectedPrint}, actual: %A{output}"
+            )
+
+            for expectedOutput, output in Seq.zip testCase.ExpectedPrint output do
+                assertCorrectOutput expectedOutput output
+
+            assertCorrectOutput testCase.ExpectedResult result

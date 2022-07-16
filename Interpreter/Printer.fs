@@ -5,18 +5,20 @@ open System.Text
 module rec Printer =
 
     let appendString (sb: StringBuilder) (printReadably: bool) (str: string) =
-        sb.Append('"') |> ignore
-
         if printReadably then
+            sb.Append('"') |> ignore
+
             for c in str.ToCharArray() do
                 match c with
                 | '\\' -> sb.Append(@"\\") |> ignore
                 | '"' -> sb.Append("\\\"") |> ignore
+                | '\n' -> sb.Append(@"\n") |> ignore
                 | c -> sb.Append(c) |> ignore
+
+            sb.Append('"') |> ignore
         else
             sb.Append(str) |> ignore
 
-        sb.Append('"') |> ignore
 
     let appendKeywordString (sb: StringBuilder) (KeywordString s) =
         sb.Append(':') |> ignore

@@ -1,8 +1,8 @@
 namespace Interpreter
 
-type Interpreter() =
-
-    let env = Env.CreateInitial()
+type Interpreter(?writeLine: string -> unit) =
+    let writeLine = defaultArg writeLine (printfn "%s")
+    let env = Env.CreateInitial(writeLine)
 
     do
         "(def! not (fn* (x) (if x false true)))"

@@ -26,9 +26,7 @@ module Core =
     let isEmpty asts =
         match asts with
         | [] -> raise (ArgumentError "Expected at least one argument.")
-        | ast :: _ ->
-            List.isEmpty (Ast.unwrapList ast)
-            |> Ast.Boolean
+        | ast :: _ -> List.isEmpty (Ast.unwrapList ast) |> Ast.Boolean
 
     let count asts =
         match asts with
@@ -76,11 +74,21 @@ module Core =
     let greaterThan = integerComparison (>)
     let greaterThanOrEqual = integerComparison (>=)
 
-    let prn (asts: Ast list) =
-        let output =
-            asts
-            |> List.map (Printer.printAst true)
-            |> String.concat " "
+    let printAndConcat printReadably separator (asts: Ast list) =
+        asts
+        |> List.map (Printer.printAst printReadably)
+        |> String.concat separator
 
-        printfn "%s" output
+    let prStr (asts: Ast list) =
+        printAndConcat true " " asts |> Ast.String
+
+    let str (asts: Ast list) =
+        printAndConcat false "" asts |> Ast.String
+
+    let prn writeLine (asts: Ast list) =
+        printAndConcat true " " asts |> writeLine
+        Ast.Nil
+
+    let println writeLine (asts: Ast list) =
+        printAndConcat false " " asts |> writeLine
         Ast.Nil
