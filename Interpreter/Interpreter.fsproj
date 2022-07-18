@@ -6,10 +6,9 @@
   <ItemGroup>
     <Compile Include="Ast.fs" />
     <Compile Include="Parser.fs" />
+    <Compile Include="Evaluator.fs" />
     <Compile Include="Printer.fs" />
     <Compile Include="Core.fs" />
-    <Compile Include="Env.fs" />
-    <Compile Include="Evaluator.fs" />
     <Compile Include="Interpreter.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

@@ -4,20 +4,42 @@ module Evaluator =
 
     let evalError msg ast = raise (EvaluationError(msg, ast))
 
-    let rec evalAst (env: Env) (ast: Ast) =
+    let createInnerEnv outerEnv symbolNames values =
+        let innerEnv = Env(Some outerEnv)
+
+        let rec loop =
+            function
+            | [], _
+            | "&" :: [], _ -> ()
+
+            | "&" :: symbolName :: _, restValues ->
+                innerEnv.Set(symbolName, Ast.List restValues)
+
+            | symbolName :: remainingSymbolNames, value :: remainingValues ->
+                innerEnv.Set(symbolName, value)
+                loop (remainingSymbolNames, remainingValues)
+
+            | symbolName :: remainingSymbols, [] ->
+                innerEnv.Set(symbolName, Ast.Nil)
+                loop (remainingSymbols, [])
+
+        loop (symbolNames, values)
+        innerEnv
+
+
+    let rec evalAst (env: Env) (ast: Ast) : Ast =
         match ast with
         | Ast.Symbol symbolName -> env.Resolve(symbolName)
 
         | Ast.List asts ->
             match asts with
-            | [] ->
-             ast
+            | [] -> ast
 
             | Ast.Symbol "def!" :: asts ->
                 match asts with
                 | symbol :: valueAst :: _ ->
                     let value = evalAst env valueAst
-                    env.Set(symbol, value)
+                    env.Set(Ast.unwrapSymbol symbol, value)
                     value
                 | _ -> evalError $"Invalid def!" ast
 
@@ -26,11 +48,12 @@ module Evaluator =
                 | Ast.List bindingAstList :: bodyAst :: _
                 | Ast.Vector bindingAstList :: bodyAst :: _ ->
 
-                    let innerEnv = env.CreateInner([], [])
+                    let innerEnv = Env(Some env)
 
                     for bindingAsts in List.chunkBySize 2 bindingAstList do
                         match bindingAsts with
-                        | [ symbol; valueAst ] -> innerEnv.Set(symbol, evalAst innerEnv valueAst)
+                        | [ Ast.Symbol symbolName; valueAst ] ->
+                            innerEnv.Set(symbolName, evalAst innerEnv valueAst)
                         | _ -> evalError "Invalid binding list in let*" ast
 
                     evalAst innerEnv bodyAst
@@ -38,8 +61,12 @@ module Evaluator =
                 | _ -> evalError $"Invalid let*" ast
 
             | Ast.Symbol "do" :: asts ->
-                (Ast.Nil, asts)
-                ||> List.fold (fun _ ast -> evalAst env ast)
+                if List.isEmpty asts then
+                    Ast.Nil
+                else
+                    let otherAsts, lastAst = List.splitAt (asts.Length - 1) asts
+                    otherAsts |> List.iter (evalAst env >> ignore)
+                    evalAst env lastAst[0]
 
             | Ast.Symbol "if" :: asts ->
                 match asts with
@@ -56,18 +83,28 @@ module Evaluator =
 
             | Ast.Symbol "fn*" :: asts ->
                 match asts with
-                | (Ast.Vector argumentNameAsts | Ast.List argumentNameAsts) :: bodyAst :: _ ->
-                    let func argumentAsts =
-                        let innerEnv = env.CreateInner(argumentNameAsts, argumentAsts)
-                        evalAst innerEnv bodyAst
-
-                    Ast.Function func
+                | Ast.Vector argumentNameAsts :: bodyAst :: _
+                | Ast.List argumentNameAsts :: bodyAst :: _ ->
+                    let argumentNames = List.map Ast.unwrapSymbol argumentNameAsts
+                    Ast.UserDefinedFunction(env, argumentNames, bodyAst)
 
                 | _ -> evalError "Invalid let*" ast
 
             | operationAst :: argumentAsts ->
                 match evalAst env operationAst with
-                | Ast.Function func -> func (List.map (evalAst env) argumentAsts)
+                | Ast.CoreFunction func ->
+                    argumentAsts
+                    |> List.map (evalAst env)
+                    |> func
+
+                | Ast.UserDefinedFunction(outerEnv, argumentNames, body) ->
+                    let functionEnv =
+                        argumentAsts
+                        |> List.map (evalAst env)
+                        |> createInnerEnv outerEnv argumentNames
+
+                    evalAst functionEnv body
+
                 | _ -> evalError "First list element should be a function" ast
 
         | Ast.Vector asts -> asts |> List.map (evalAst env) |> Ast.Vector

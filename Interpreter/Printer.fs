@@ -74,7 +74,8 @@ module rec Printer =
             appendAstList sb printReadably asts
             sb.Append(')') |> ignore
 
-        | Ast.Function _ -> sb.Append("#<function>") |> ignore
+        | Ast.CoreFunction _
+        | Ast.UserDefinedFunction _ -> sb.Append("#<function>") |> ignore
 
         | Ast.Quote ast ->
             sb.Append("(quote ") |> ignore

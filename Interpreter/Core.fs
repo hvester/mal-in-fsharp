@@ -44,7 +44,10 @@ module Core =
             | Ast.Integer x, Ast.Integer y -> x = y
             | Ast.String x, Ast.String y -> x = y
             | Ast.Keyword x, Ast.Keyword y -> x = y
-            | (Ast.Vector xs | Ast.List xs), (Ast.Vector ys | Ast.List ys) ->
+            | (Ast.Vector xs
+              | Ast.List xs),
+              (Ast.Vector ys
+              | Ast.List ys) ->
                 List.length xs = List.length ys
                 && List.forall2 twoAreEqual xs ys
 
@@ -94,3 +97,28 @@ module Core =
     let println writeLine (asts: Ast list) =
         printAndConcat false " " asts |> writeLine
         Ast.Nil
+
+
+    let createRootEnv writeLine =
+        let env = Env(None)
+
+        [ "+", add
+          "-", substract
+          "*", multiply
+          "/", divide
+          "list", list
+          "list?", isList
+          "empty?", isEmpty
+          "count", count
+          "=", areEqual
+          "<", lessThan
+          "<=", lessThanOrEqual
+          ">", greaterThan
+          ">=", greaterThanOrEqual
+          "pr-str", prStr
+          "str", str
+          "prn", prn writeLine
+          "println", println writeLine ]
+        |> List.iter (fun (symbolName, func) -> env.Set(symbolName, Ast.CoreFunction func))
+
+        env

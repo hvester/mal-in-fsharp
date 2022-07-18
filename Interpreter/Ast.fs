@@ -1,8 +1,9 @@
 namespace Interpreter
 
+open System.Collections.Generic
+
 [<AutoOpen>]
 module rec AstTypes =
-
 
     type KeywordString = KeywordString of string
 
@@ -23,12 +24,28 @@ module rec AstTypes =
         | Vector of Ast list
         | HashMap of HashMap
         | List of Ast list
-        | Function of (Ast list -> Ast)
+        | CoreFunction of (Ast list -> Ast)
+        | UserDefinedFunction of env: Env * argumentNames: string list * body: Ast
         | Quote of Ast
         | Quasiquote of Ast
         | Unquote of Ast
         | SpliceUnquote of Ast
         | Deref of Ast
+
+    type Env(outer: Env option) =
+
+        let bindings = Dictionary<string, Ast>()
+
+        member _.Set(symbolName, ast) = bindings[symbolName] <- ast
+
+        member _.Resolve(symbolName) =
+            match bindings.TryGetValue(symbolName) with
+            | true, value -> value
+            | false, _ ->
+                match outer with
+                | Some o -> o.Resolve(symbolName)
+                | None -> raise (SymbolResolutionError symbolName)
+
 
     exception ParsingError of message: string
 
