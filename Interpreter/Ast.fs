@@ -13,6 +13,8 @@ module rec AstTypes =
 
     type HashMap = HashMap of Map<HashMapKey, Ast>
 
+    type Atom = { mutable Value: Ast }
+
     [<RequireQualifiedAccess>]
     type Ast =
         | Nil
@@ -26,6 +28,7 @@ module rec AstTypes =
         | List of Ast list
         | CoreFunction of (Ast list -> Ast)
         | UserDefinedFunction of env: Env * argumentNames: string list * body: Ast
+        | Atom of Atom
         | Quote of Ast
         | Quasiquote of Ast
         | Unquote of Ast
@@ -83,3 +86,8 @@ module Ast =
         | Ast.List xs
         | Ast.Vector xs -> xs
         | _ -> raise (EvaluationError("Expected a list or a vector.", ast))
+
+    let unwrapAtom ast =
+        match ast with
+        | Ast.Atom atom -> atom
+        | _ -> raise (EvaluationError("Expected an atom.", ast))

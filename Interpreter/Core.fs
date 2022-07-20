@@ -122,6 +122,39 @@ module Core =
         with
         | _ -> Ast.Nil
 
+    let atom (asts: Ast list) =
+        Ast.Atom { Value = getOneArgument asts }
+
+    let isAtom (asts: Ast list) =
+        match getOneArgument asts with
+        | Ast.Atom _ -> Ast.Boolean true
+        | _ -> Ast.Boolean false
+
+    let deref (asts: Ast list) =
+        (Ast.unwrapAtom (getOneArgument asts)).Value
+
+    let reset (asts: Ast list) =
+        let atomAst, value = getTwoArguments asts
+        let atom = Ast.unwrapAtom atomAst
+        atom.Value <- value
+        value
+
+    let swap (asts: Ast list) =
+        let atom = getOneArgument asts |> Ast.unwrapAtom
+        let result =
+            match List.tail asts with
+            | Ast.CoreFunction func :: otherArgs ->
+                func (atom.Value :: otherArgs)
+
+            | Ast.UserDefinedFunction(env, argNames, body) :: otherArgs ->
+                let functionEnv = Evaluator.createInnerEnv env argNames (atom.Value :: otherArgs)
+                Evaluator.evalAst functionEnv body
+            
+            | _  -> raise (ArgumentError "Expected that second argument is a function.")
+
+        atom.Value <- result
+        result
+
     let createRootEnv writeLine =
         let env = Env(None)
 
@@ -144,7 +177,12 @@ module Core =
           "println", println writeLine
           "read-string", readString
           "slurp", slurp
-          "eval", getOneArgument >> Evaluator.evalAst env ]
+          "eval", getOneArgument >> Evaluator.evalAst env
+          "atom", atom
+          "atom?", isAtom
+          "deref", deref
+          "reset!", reset
+          "swap!", swap ]
         |> List.iter (fun (symbolName, func) -> env.Set(symbolName, Ast.CoreFunction func))
 
         env
