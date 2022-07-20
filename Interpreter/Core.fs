@@ -1,6 +1,19 @@
 namespace Interpreter
 
+open System.IO
+
 module Core =
+
+    let private getOneArgument (argumentAsts: Ast list) =
+        match argumentAsts with
+        | [] -> raise (ArgumentError "Expected one argument.")
+        | argumentAst :: _ -> argumentAst
+
+    let private getTwoArguments (argumentAsts: Ast list) =
+        match argumentAsts with
+        | []
+        | _ :: [] -> raise (ArgumentError "Expected two arguments.")
+        | firstArgumentAst :: secondArgumentAst :: _ -> (firstArgumentAst, secondArgumentAst)
 
     let private integerOperation f asts =
         match asts with
@@ -24,11 +37,10 @@ module Core =
         | _ -> Ast.Boolean false
 
     let isEmpty asts =
-        match asts with
-        | [] -> raise (ArgumentError "Expected at least one argument.")
-        | Ast.List xs :: _
-        | Ast.Vector xs :: _ -> List.isEmpty xs |> Ast.Boolean
-        | ast :: _ -> raise (EvaluationError("Expected a list or vector.", ast))
+        getOneArgument asts
+        |> Ast.unwrapCollection
+        |> List.isEmpty
+        |> Ast.Boolean
 
     let count asts =
         match asts with
@@ -61,25 +73,22 @@ module Core =
 
             | _ -> false
 
-        match asts with
-        | []
-        | [ _ ] -> raise (ArgumentError "Expected at least two arguments.")
-        | ast1 :: ast2 :: _ -> twoAreEqual ast1 ast2 |> Ast.Boolean
+        let ast1, ast2 = getTwoArguments asts
+        twoAreEqual ast1 ast2 |> Ast.Boolean
+
 
     let private integerComparison compare asts =
-        match asts with
-        | []
-        | [ _ ] -> raise (ArgumentError "Expected at least two arguments.")
-        | ast1 :: ast2 :: _ ->
-            compare (Ast.unwrapInteger ast1) (Ast.unwrapInteger ast2)
-            |> Ast.Boolean
+        let ast1, ast2 = getTwoArguments asts
+
+        compare (Ast.unwrapInteger ast1) (Ast.unwrapInteger ast2)
+        |> Ast.Boolean
 
     let lessThan = integerComparison (<)
     let lessThanOrEqual = integerComparison (<=)
     let greaterThan = integerComparison (>)
     let greaterThanOrEqual = integerComparison (>=)
 
-    let printAndConcat printReadably separator (asts: Ast list) =
+    let private printAndConcat printReadably separator (asts: Ast list) =
         asts
         |> List.map (Printer.printAst printReadably)
         |> String.concat separator
@@ -98,6 +107,20 @@ module Core =
         printAndConcat false " " asts |> writeLine
         Ast.Nil
 
+    let readString (asts: Ast list) =
+        getOneArgument asts
+        |> Ast.unwrapString
+        |> Parser.read
+        |> List.tryHead
+        |> Option.defaultValue Ast.Nil
+
+    let slurp (asts: Ast list) =
+        let filePath = getOneArgument asts |> Ast.unwrapString
+
+        try
+            File.ReadAllText(filePath) |> Ast.String
+        with
+        | _ -> Ast.Nil
 
     let createRootEnv writeLine =
         let env = Env(None)
@@ -118,7 +141,10 @@ module Core =
           "pr-str", prStr
           "str", str
           "prn", prn writeLine
-          "println", println writeLine ]
+          "println", println writeLine
+          "read-string", readString
+          "slurp", slurp
+          "eval", getOneArgument >> Evaluator.evalAst env ]
         |> List.iter (fun (symbolName, func) -> env.Set(symbolName, Ast.CoreFunction func))
 
         env

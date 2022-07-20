@@ -68,7 +68,18 @@ module Ast =
         | Ast.Symbol symbolName -> symbolName
         | _ -> raise (EvaluationError("Expected a symbol.", ast))
 
+    let unwrapString ast =
+        match ast with
+        | Ast.String str -> str
+        | _ -> raise (EvaluationError("Expected a string.", ast))
+
     let unwrapList ast =
         match ast with
         | Ast.List xs -> xs
         | _ -> raise (EvaluationError("Expected a list.", ast))
+
+    let unwrapCollection ast =
+        match ast with
+        | Ast.List xs
+        | Ast.Vector xs -> xs
+        | _ -> raise (EvaluationError("Expected a list or a vector.", ast))

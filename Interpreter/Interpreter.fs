@@ -5,7 +5,10 @@ type Interpreter(?writeLine: string -> unit) =
     let env = Core.createRootEnv writeLine
 
     do
-        "(def! not (fn* (x) (if x false true)))"
+        """
+        (def! not (fn* (x) (if x false true)))
+        (def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))
+        """
         |> Parser.read
         |> Evaluator.eval env
         |> ignore
