@@ -13,15 +13,28 @@ type Interpreter(?writeLine: string -> unit) =
         |> Evaluator.eval env
         |> ignore
 
-    member _.Rep(input: string) =
+    let rep input =
         try
             Parser.read input
             |> Evaluator.eval env
-            |> function
-                | None -> ""
-                | Some ast -> Printer.printAst true ast
+            |> Option.map (Printer.printAst true)
         with
-        | ParsingError msg -> $"Parsing error: {msg}"
-        | ArgumentError msg -> $"Argument error: {msg}"
-        | SymbolResolutionError symbolName -> $"{symbolName} not found."
-        | EvaluationError (msg, ast) -> $"Evaluation error: {msg} {Printer.printAst true ast}"
+        | ParsingError msg -> Some $"Parsing error: {msg}"
+        | ArgumentError msg -> Some $"Argument error: {msg}"
+        | SymbolResolutionError symbolName -> Some $"{symbolName} not found."
+        | EvaluationError (msg, ast) -> Some $"Evaluation error: {msg} {Printer.printAst true ast}"
+
+    member _.RunRepl() =
+        let rec loop () =
+            printf "user>"
+
+            match System.Console.ReadLine() with
+            | "#quit" -> ()
+            | input ->
+                rep input |> Option.iter (printfn "%s")
+                loop ()
+
+        loop ()
+
+    member _.RunScript(scriptFilePath, args) =
+        rep $"""(load-file "{scriptFilePath}")""" |> ignore

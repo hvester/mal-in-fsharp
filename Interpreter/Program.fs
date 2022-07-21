@@ -6,13 +6,8 @@ module Program =
     let main (args: string []) =
         let interpreter = Interpreter()
 
-        let rec loop () =
-            printf "user>"
+        match Array.toList args with
+        | [] -> interpreter.RunRepl()
+        | fileName :: scriptArgs -> interpreter.RunScript(fileName, scriptArgs)
 
-            match System.Console.ReadLine() with
-            | "quit" -> 0
-            | input ->
-                interpreter.Rep(input) |> printfn "%s"
-                loop ()
-
-        loop ()
+        0
