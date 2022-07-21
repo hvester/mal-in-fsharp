@@ -36,5 +36,12 @@ type Interpreter(?writeLine: string -> unit) =
 
         loop ()
 
-    member _.RunScript(scriptFilePath, args) =
+    member _.RunScript(scriptFilePath, args) =    
+        args
+        |> List.map (sprintf "\"%s\"")
+        |> String.concat " "
+        |> sprintf "(def! *ARGV* (list %s))"
+        |> rep
+        |> ignore
+
         rep $"""(load-file "{scriptFilePath}")""" |> ignore
