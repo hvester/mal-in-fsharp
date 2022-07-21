@@ -83,7 +83,9 @@ module Parser =
         pQuoteConstructor .>>. pAst
         |>> fun (constructor, ast) -> constructor ast
 
-    let pDeref = skipChar '@' >>. pAst |>> Ast.Deref
+    let pDeref =
+        skipChar '@' >>. pSymbol
+        |>> (fun symbol -> Ast.List [ Ast.Symbol "deref"; symbol ])
 
     do
         pAstRef

@@ -102,11 +102,6 @@ module rec Printer =
             appendAst sb printReadably ast
             sb.Append(')') |> ignore
 
-        | Ast.Deref ast ->
-            sb.Append("(deref ") |> ignore
-            appendAst sb printReadably ast
-            sb.Append(')') |> ignore
-
 
     let printAst printReadably (ast: Ast) =
         let sb = StringBuilder()

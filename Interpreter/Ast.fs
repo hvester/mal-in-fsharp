@@ -33,7 +33,6 @@ module rec AstTypes =
         | Quasiquote of Ast
         | Unquote of Ast
         | SpliceUnquote of Ast
-        | Deref of Ast
 
     type Env(outer: Env option) =
 
