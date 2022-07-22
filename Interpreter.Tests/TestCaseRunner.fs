@@ -120,7 +120,7 @@ module TestCaseRunner =
             for s in line.Split('\n') do
                 output.Add(s)
 
-        let interpreter = Interpreter(writeLine)
+        let interpreter = Interpreter([], writeLine)
 
         for section in sectionsBefore do
             for testCase in section.TestCases do
@@ -132,7 +132,9 @@ module TestCaseRunner =
 
             let result =
                 ("", testCase.Inputs)
-                ||> List.fold (fun _ input -> interpreter.Rep(input))
+                ||> List.fold (fun _ input -> 
+                    interpreter.Rep(input)
+                    |> Option.defaultValue "")
 
             Assert.True(
                 testCase.ExpectedPrint.Length = output.Count,

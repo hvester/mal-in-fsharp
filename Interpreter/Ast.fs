@@ -29,10 +29,7 @@ module rec AstTypes =
         | CoreFunction of (Ast list -> Ast)
         | UserDefinedFunction of env: Env * argumentNames: string list * body: Ast
         | Atom of Atom
-        | Quote of Ast
-        | Quasiquote of Ast
-        | Unquote of Ast
-        | SpliceUnquote of Ast
+
 
     type Env(outer: Env option) =
 

@@ -82,26 +82,6 @@ module rec Printer =
             appendAst sb printReadably atom.Value
             sb.Append(')') |> ignore
 
-        | Ast.Quote ast ->
-            sb.Append("(quote ") |> ignore
-            appendAst sb printReadably ast
-            sb.Append(')') |> ignore
-
-        | Ast.Quasiquote ast ->
-            sb.Append("(quasiquote ") |> ignore
-            appendAst sb printReadably ast
-            sb.Append(')') |> ignore
-
-        | Ast.Unquote ast ->
-            sb.Append("(unquote ") |> ignore
-            appendAst sb printReadably ast
-            sb.Append(')') |> ignore
-
-        | Ast.SpliceUnquote ast ->
-            sb.Append("(splice-unquote ") |> ignore
-            appendAst sb printReadably ast
-            sb.Append(')') |> ignore
-
 
     let printAst printReadably (ast: Ast) =
         let sb = StringBuilder()

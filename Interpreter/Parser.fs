@@ -71,21 +71,18 @@ module Parser =
         between (skipChar '{') (skipChar '}') pKeyValuePairList
         |>> (Map.ofList >> HashMap >> Ast.HashMap)
 
-    let pQuoteConstructor: Parser<_, unit> =
-        stringReturn "'" Ast.Quote
-        <|> stringReturn "`" Ast.Quasiquote
+    let pReaderMacroSymbol: Parser<_, unit> =
+        stringReturn "'" "quote"
+        <|> stringReturn "`" "quasiquote"
+        <|> stringReturn "@" "deref"
         <|> (pchar '~' >>. opt (pchar '@')
              |>> function
-                 | None -> Ast.Unquote
-                 | Some _ -> Ast.SpliceUnquote)
+                 | None -> "unquote"
+                 | Some _ -> "splice-unquote")
 
-    let pQuote =
-        pQuoteConstructor .>>. pAst
-        |>> fun (constructor, ast) -> constructor ast
-
-    let pDeref =
-        skipChar '@' >>. pSymbol
-        |>> (fun symbol -> Ast.List [ Ast.Symbol "deref"; symbol ])
+    let pReaderMacro =
+        pReaderMacroSymbol .>>. pAst
+        |>> (fun (symbolName, ast) -> Ast.List [ Ast.Symbol symbolName; ast ])
 
     do
         pAstRef
@@ -97,8 +94,7 @@ module Parser =
                     pList
                     pVector
                     pHashMap
-                    pQuote
-                    pDeref
+                    pReaderMacro
                     pSymbol ]
 
 
