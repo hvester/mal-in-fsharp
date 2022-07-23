@@ -7,7 +7,6 @@
 ;=>(1 2 3)
 (cons (list 1) (list 2 3))
 ;=>((1) 2 3)
-
 (def! a (list 2 3))
 (cons 1 a)
 ;=>(1 2 3)
@@ -29,7 +28,6 @@ a
 ;=>()
 (= () (concat))
 ;=>true
-
 (def! a (list 1 2))
 (def! b (list 3 4))
 (concat a b (list 5 6))
@@ -77,7 +75,7 @@ b
 (quasiquote (()))
 ;=>(())
 ;; (quasiquote (f () g (h) i (j k) l))
-;; =>(f () g (h) i (j k) l)
+;=>(f () g (h) i (j k) l)
 
 ;; Testing unquote
 (quasiquote (unquote 7))
@@ -135,10 +133,6 @@ b
 (= nil (quote abc))
 ;=>false
 
-;>>> deferrable=True
-;;
-;; -------- Deferrable Functionality --------
-
 ;; Testing ' (quote) reader macro
 '7
 ;=>7
@@ -148,7 +142,6 @@ b
 ;=>(1 2 (3 4))
 
 ;; Testing cons and concat with vectors
-
 (cons 1 [])
 ;=>(1)
 (cons [1] [2 3])
@@ -160,9 +153,6 @@ b
 (concat [1 2])
 ;=>(1 2)
 
-;>>> optional=True
-;;
-;; -------- Optional Functionality --------
 
 ;; Testing ` (quasiquote) reader macro
 `7
@@ -196,10 +186,7 @@ b
 `(1 ~@c 3)
 ;=>(1 1 "b" "d" 3)
 
-;>>> soft=True
-
 ;; Testing vec function
-
 (vec (list))
 ;=>[]
 (vec (list 1))

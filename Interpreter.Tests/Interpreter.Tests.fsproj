@@ -12,6 +12,7 @@
     <Compile Include="IfFnDoTests.fs" />
     <Compile Include="TcoTests.fs" />
     <Compile Include="FileTests.fs" />
+    <Compile Include="QuoteTests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
