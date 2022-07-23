@@ -141,19 +141,29 @@ module Core =
 
     let swap (asts: Ast list) =
         let atom = getOneArgument asts |> Ast.unwrapAtom
+
         let result =
             match List.tail asts with
-            | Ast.CoreFunction func :: otherArgs ->
-                func (atom.Value :: otherArgs)
+            | Ast.CoreFunction func :: otherArgs -> func (atom.Value :: otherArgs)
 
-            | Ast.UserDefinedFunction(env, argNames, body) :: otherArgs ->
+            | Ast.UserDefinedFunction (env, argNames, body) :: otherArgs ->
                 let functionEnv = Evaluator.createInnerEnv env argNames (atom.Value :: otherArgs)
                 Evaluator.evalAst functionEnv body
-            
-            | _  -> raise (ArgumentError "Expected that second argument is a function.")
+
+            | _ -> raise (ArgumentError "Expected that second argument is a function.")
 
         atom.Value <- result
         result
+
+    let cons (asts: Ast list) =
+        let firstAst, secondAst = getTwoArguments asts
+
+        firstAst :: Ast.unwrapCollection secondAst
+        |> Ast.List
+
+    let concat (asts: Ast list) =
+        List.collect Ast.unwrapCollection asts
+        |> Ast.List
 
     let createRootEnv writeLine =
         let env = Env(None)
@@ -182,7 +192,9 @@ module Core =
           "atom?", isAtom
           "deref", deref
           "reset!", reset
-          "swap!", swap ]
+          "swap!", swap
+          "cons", cons
+          "concat", concat ]
         |> List.iter (fun (symbolName, func) -> env.Set(symbolName, Ast.CoreFunction func))
 
         env
