@@ -90,6 +90,10 @@ module Evaluator =
 
                 | _ -> evalError "Invalid let*" ast
 
+            | Ast.Symbol "quote" :: asts ->
+                List.tryHead asts
+                |> Option.defaultWith (fun () -> evalError "Invalid quote" ast)
+
             | operationAst :: argumentAsts ->
                 match evalAst env operationAst with
                 | Ast.CoreFunction func ->
