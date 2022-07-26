@@ -12,8 +12,7 @@ module Evaluator =
             | [], _
             | "&" :: [], _ -> ()
 
-            | "&" :: symbolName :: _, restValues ->
-                innerEnv.Set(symbolName, Ast.List restValues)
+            | "&" :: symbolName :: _, restValues -> innerEnv.Set(symbolName, Ast.List restValues)
 
             | symbolName :: remainingSymbolNames, value :: remainingValues ->
                 innerEnv.Set(symbolName, value)
@@ -25,6 +24,25 @@ module Evaluator =
 
         loop (symbolNames, values)
         innerEnv
+
+    let wrapInList operatorName arguments =
+        Ast.List(Ast.Symbol operatorName :: arguments)
+
+    let rec quasiquoteAstList (asts: Ast list) =
+        (asts, Ast.List [])
+        ||> List.foldBack (fun elt acc ->
+            match elt with
+            | Ast.List (Ast.Symbol "splice-unquote" :: secondElement :: _) -> wrapInList "concat" [ secondElement; acc ]
+            | _ -> wrapInList "cons" [ quasiquote elt; acc ])
+
+    and quasiquote ast =
+        match ast with
+        | Ast.List (Ast.Symbol "unquote" :: unquotedAst :: _) -> unquotedAst
+        | Ast.List asts -> quasiquoteAstList asts
+        | Ast.Symbol _
+        | Ast.HashMap _ -> wrapInList "quote" [ ast ]
+        | Ast.Vector asts -> wrapInList "vec" [ quasiquoteAstList asts ]
+        | _ -> ast
 
 
     let rec evalAst (env: Env) (ast: Ast) : Ast =
@@ -52,8 +70,7 @@ module Evaluator =
 
                     for bindingAsts in List.chunkBySize 2 bindingAstList do
                         match bindingAsts with
-                        | [ Ast.Symbol symbolName; valueAst ] ->
-                            innerEnv.Set(symbolName, evalAst innerEnv valueAst)
+                        | [ Ast.Symbol symbolName; valueAst ] -> innerEnv.Set(symbolName, evalAst innerEnv valueAst)
                         | _ -> evalError "Invalid binding list in let*" ast
 
                     evalAst innerEnv bodyAst
@@ -94,14 +111,21 @@ module Evaluator =
                 List.tryHead asts
                 |> Option.defaultWith (fun () -> evalError "Invalid quote" ast)
 
+            | Ast.Symbol "quasiquote" :: asts ->
+                match asts with
+                | [ firstAst ] -> evalAst env (quasiquote firstAst)
+                | _ -> evalError "Invalid quasiquote" ast
+
+            | Ast.Symbol "quasiquoteexpand" :: asts ->
+                match asts with
+                | [ firstAst ] -> quasiquote firstAst
+                | _ -> evalError "Invalid quasiquoteextend" ast
+
             | operationAst :: argumentAsts ->
                 match evalAst env operationAst with
-                | Ast.CoreFunction func ->
-                    argumentAsts
-                    |> List.map (evalAst env)
-                    |> func
+                | Ast.CoreFunction func -> argumentAsts |> List.map (evalAst env) |> func
 
-                | Ast.UserDefinedFunction(outerEnv, argumentNames, body) ->
+                | Ast.UserDefinedFunction (outerEnv, argumentNames, body) ->
                     let functionEnv =
                         argumentAsts
                         |> List.map (evalAst env)
