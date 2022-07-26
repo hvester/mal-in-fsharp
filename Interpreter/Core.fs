@@ -54,6 +54,7 @@ module Core =
             | Ast.Nil, Ast.Nil -> true
             | Ast.Boolean x, Ast.Boolean y -> x = y
             | Ast.Integer x, Ast.Integer y -> x = y
+            | Ast.Symbol x, Ast.Symbol y -> x = y
             | Ast.String x, Ast.String y -> x = y
             | Ast.Keyword x, Ast.Keyword y -> x = y
             | (Ast.Vector xs
