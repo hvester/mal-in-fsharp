@@ -166,6 +166,10 @@ module Core =
         List.collect Ast.unwrapCollection asts
         |> Ast.List
 
+    let vec (asts: Ast list) =
+        Ast.unwrapCollection (getOneArgument asts)
+        |> Ast.Vector
+
     let createRootEnv writeLine =
         let env = Env(None)
 
@@ -195,7 +199,8 @@ module Core =
           "reset!", reset
           "swap!", swap
           "cons", cons
-          "concat", concat ]
+          "concat", concat
+          "vec", vec ]
         |> List.iter (fun (symbolName, func) -> env.Set(symbolName, Ast.CoreFunction func))
 
         env
