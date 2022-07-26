@@ -74,11 +74,9 @@ module Parser =
     let pReaderMacroSymbol: Parser<_, unit> =
         stringReturn "'" "quote"
         <|> stringReturn "`" "quasiquote"
+        <|> stringReturn "~@" "splice-unquote"
+        <|> stringReturn "~" "unquote"
         <|> stringReturn "@" "deref"
-        <|> (pchar '~' >>. opt (pchar '@')
-             |>> function
-                 | None -> "unquote"
-                 | Some _ -> "splice-unquote")
 
     let pReaderMacro =
         pReaderMacroSymbol .>>. pAst
