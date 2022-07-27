@@ -12,6 +12,7 @@ type Interpreter(commandLineArguments, ?writeLine: string -> unit) =
         (def! not (fn* (x) (if x false true)))
         (def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))
         (def! *ARGV* (list {argsString}))
+        (defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons 'cond (rest (rest xs)))))))
         """
         |> Parser.read
         |> Evaluator.eval env

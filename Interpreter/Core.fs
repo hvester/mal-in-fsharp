@@ -170,6 +170,31 @@ module Core =
         Ast.unwrapCollection (getOneArgument asts)
         |> Ast.Vector
 
+    let nth (asts: Ast list) =
+        let firstAst, secondAst = getTwoArguments asts
+        let items = Ast.unwrapCollection firstAst
+        let index = Ast.unwrapInteger secondAst
+        if index >= 0 && index < items.Length then
+            List.item index items
+        else
+            raise (ArgumentError "Index out of bounds")
+
+    let first (asts: Ast list) =
+        match getOneArgument asts with
+        | Ast.Nil -> Ast.Nil
+        | ast ->
+            match Ast.unwrapCollection ast with
+            | [] -> Ast.Nil
+            | items -> List.head items
+
+    let rest (asts: Ast list) =
+        match getOneArgument asts with
+        | Ast.Nil -> Ast.List []
+        | ast ->
+            match Ast.unwrapCollection ast with
+            | [] -> Ast.List []
+            | items -> Ast.List (List.tail items)
+
     let createRootEnv writeLine =
         let env = Env(None)
 
@@ -200,7 +225,10 @@ module Core =
           "swap!", swap
           "cons", cons
           "concat", concat
-          "vec", vec ]
+          "vec", vec
+          "nth", nth
+          "first", first
+          "rest", rest ]
         |> List.iter (fun (symbolName, func) -> env.Set(symbolName, Ast.CoreFunction func))
 
         env
