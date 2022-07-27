@@ -27,7 +27,7 @@ module rec AstTypes =
         | HashMap of HashMap
         | List of Ast list
         | CoreFunction of (Ast list -> Ast)
-        | UserDefinedFunction of env: Env * argumentNames: string list * body: Ast
+        | UserDefinedFunction of isMacro: bool * env: Env * argumentNames: string list * body: Ast
         | Atom of Atom
 
 
@@ -37,13 +37,18 @@ module rec AstTypes =
 
         member _.Set(symbolName, ast) = bindings[symbolName] <- ast
 
-        member _.Resolve(symbolName) =
+        member _.TryResolve(symbolName) =
             match bindings.TryGetValue(symbolName) with
-            | true, value -> value
+            | true, value -> Some value
             | false, _ ->
                 match outer with
-                | Some o -> o.Resolve(symbolName)
-                | None -> raise (SymbolResolutionError symbolName)
+                | Some o -> o.TryResolve(symbolName)
+                | None -> None
+
+        member this.Resolve(symbolName) =
+            match this.TryResolve(symbolName) with
+            | Some value -> value
+            | None -> raise (SymbolResolutionError symbolName)
 
 
     exception ParsingError of message: string

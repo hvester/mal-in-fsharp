@@ -1,6 +1,6 @@
 namespace Interpreter
 
-module Evaluator =
+module rec Evaluator =
 
     let evalError msg ast = raise (EvaluationError(msg, ast))
 
@@ -28,14 +28,14 @@ module Evaluator =
     let wrapInList operatorName arguments =
         Ast.List(Ast.Symbol operatorName :: arguments)
 
-    let rec quasiquoteAstList (asts: Ast list) =
+    let quasiquoteAstList (asts: Ast list) =
         (asts, Ast.List [])
         ||> List.foldBack (fun elt acc ->
             match elt with
             | Ast.List (Ast.Symbol "splice-unquote" :: secondElement :: _) -> wrapInList "concat" [ secondElement; acc ]
             | _ -> wrapInList "cons" [ quasiquote elt; acc ])
 
-    and quasiquote ast =
+    let quasiquote ast =
         match ast with
         | Ast.List (Ast.Symbol "unquote" :: unquotedAst :: _) -> unquotedAst
         | Ast.List asts -> quasiquoteAstList asts
@@ -44,22 +44,45 @@ module Evaluator =
         | Ast.Vector asts -> wrapInList "vec" [ quasiquoteAstList asts ]
         | _ -> ast
 
+    let rec macroexpand (env: Env) (ast: Ast) : Ast =
+        match ast with
+        | Ast.List (Ast.Symbol symbolName :: args) ->
+            match env.TryResolve(symbolName) with
+            | Some (Ast.UserDefinedFunction (true, outerEnv, argumentNames, body)) ->
+                let macroEnvEnv = createInnerEnv outerEnv argumentNames args
+                let expandedAst = evalAst macroEnvEnv body
+                macroexpand env expandedAst
+            | _ -> ast
+        | _ -> ast
+
 
     let rec evalAst (env: Env) (ast: Ast) : Ast =
-        match ast with
+        let expandedAst = macroexpand env ast
+        match expandedAst with
         | Ast.Symbol symbolName -> env.Resolve(symbolName)
 
         | Ast.List asts ->
             match asts with
-            | [] -> ast
+            | [] -> expandedAst
 
             | Ast.Symbol "def!" :: asts ->
                 match asts with
-                | symbol :: valueAst :: _ ->
+                | Ast.Symbol symbolName :: valueAst :: _ ->
                     let value = evalAst env valueAst
-                    env.Set(Ast.unwrapSymbol symbol, value)
+                    env.Set(symbolName, value)
                     value
                 | _ -> evalError $"Invalid def!" ast
+
+            | Ast.Symbol "defmacro!" :: asts ->
+                match asts with
+                | Ast.Symbol symbolName :: valueAst :: _ ->
+                    match evalAst env valueAst with
+                    | Ast.UserDefinedFunction (false, env, argumentNames, bodyAst) ->
+                        let macro = Ast.UserDefinedFunction(true, env, argumentNames, bodyAst)
+                        env.Set(symbolName, macro)
+                        macro
+                    | _ -> evalError "Invalid defmacro!" ast
+                | _ -> evalError "Invalid defmacro!" ast
 
             | Ast.Symbol "let*" :: asts ->
                 match asts with
@@ -103,7 +126,7 @@ module Evaluator =
                 | Ast.Vector argumentNameAsts :: bodyAst :: _
                 | Ast.List argumentNameAsts :: bodyAst :: _ ->
                     let argumentNames = List.map Ast.unwrapSymbol argumentNameAsts
-                    Ast.UserDefinedFunction(env, argumentNames, bodyAst)
+                    Ast.UserDefinedFunction(false, env, argumentNames, bodyAst)
 
                 | _ -> evalError "Invalid let*" ast
 
@@ -121,11 +144,16 @@ module Evaluator =
                 | [ firstAst ] -> quasiquote firstAst
                 | _ -> evalError "Invalid quasiquoteextend" ast
 
+            | Ast.Symbol "macroexpand" :: asts ->
+                match asts with
+                | [ firstAst ] -> macroexpand env firstAst
+                | _ -> evalError "Invalid quasiquoteextend" ast
+
             | operationAst :: argumentAsts ->
                 match evalAst env operationAst with
                 | Ast.CoreFunction func -> argumentAsts |> List.map (evalAst env) |> func
 
-                | Ast.UserDefinedFunction (outerEnv, argumentNames, body) ->
+                | Ast.UserDefinedFunction (false, outerEnv, argumentNames, body) ->
                     let functionEnv =
                         argumentAsts
                         |> List.map (evalAst env)
@@ -142,7 +170,7 @@ module Evaluator =
             |> HashMap
             |> Ast.HashMap
 
-        | _ -> ast
+        | _ -> expandedAst
 
 
     let eval env asts =

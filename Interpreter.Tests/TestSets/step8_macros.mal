@@ -43,10 +43,6 @@
 `(1)
 ;=>(1)
 
-;>>> deferrable=True
-;;
-;; -------- Deferrable Functionality --------
-
 ;; Testing non-macro function
 (not (= 1 1))
 ;=>false
@@ -55,7 +51,6 @@
 ;=>true
 
 ;; Testing nth, first and rest functions
-
 (nth (list 1) 0)
 ;=>1
 (nth (list 1 2) 1)
@@ -66,14 +61,12 @@
 (def! x (nth (list 1 2) 2))
 x
 ;=>"x"
-
 (first (list))
 ;=>nil
 (first (list 6))
 ;=>6
 (first (list 7 8 9))
 ;=>7
-
 (rest (list))
 ;=>()
 (rest (list 6))
@@ -83,7 +76,6 @@ x
 
 
 ;; Testing cond macro
-
 (macroexpand (cond))
 ;=>nil
 (cond)
@@ -108,13 +100,11 @@ x
 ;=>nil
 
 ;; Testing EVAL in let*
-
 (let* (x (cond false "no" true "yes")) x)
 ;=>"yes"
 
 
 ;; Testing nth, first, rest with vectors
-
 (nth [1] 0)
 ;=>1
 (nth [1 2] 1)
@@ -125,7 +115,6 @@ x
 (def! x (nth [1 2] 2))
 x
 ;=>"x"
-
 (first [])
 ;=>nil
 (first nil)
@@ -146,15 +135,9 @@ x
 ;=>(11 12)
 
 ;; Testing EVAL in vector let*
-
 (let* [x (cond false "no" true "yes")] x)
 ;=>"yes"
 
-;>>> soft=True
-;>>> optional=True
-;;
-;; ------- Optional Functionality --------------
-;; ------- (Not needed for self-hosting) -------
 
 ;; Test that macros use closures
 (def! x 2)

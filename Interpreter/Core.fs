@@ -147,7 +147,7 @@ module Core =
             match List.tail asts with
             | Ast.CoreFunction func :: otherArgs -> func (atom.Value :: otherArgs)
 
-            | Ast.UserDefinedFunction (env, argNames, body) :: otherArgs ->
+            | Ast.UserDefinedFunction (false, env, argNames, body) :: otherArgs ->
                 let functionEnv = Evaluator.createInnerEnv env argNames (atom.Value :: otherArgs)
                 Evaluator.evalAst functionEnv body
 
