@@ -77,6 +77,8 @@ module rec Printer =
         | Ast.CoreFunction _
         | Ast.UserDefinedFunction _ -> sb.Append("#<function>") |> ignore
 
+        | Ast.Macro _ -> sb.Append("#<macro>") |> ignore
+
         | Ast.Atom atom ->
             sb.Append("(atom ") |> ignore
             appendAst sb printReadably atom.Value

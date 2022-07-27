@@ -27,7 +27,8 @@ module rec AstTypes =
         | HashMap of HashMap
         | List of Ast list
         | CoreFunction of (Ast list -> Ast)
-        | UserDefinedFunction of isMacro: bool * env: Env * argumentNames: string list * body: Ast
+        | UserDefinedFunction of env: Env * argumentNames: string list * body: Ast
+        | Macro of env: Env * argumentNames: string list * body: Ast
         | Atom of Atom
 
 

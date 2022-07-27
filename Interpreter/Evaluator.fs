@@ -48,7 +48,7 @@ module rec Evaluator =
         match ast with
         | Ast.List (Ast.Symbol symbolName :: args) ->
             match env.TryResolve(symbolName) with
-            | Some (Ast.UserDefinedFunction (true, outerEnv, argumentNames, body)) ->
+            | Some (Ast.Macro (outerEnv, argumentNames, body)) ->
                 let macroEnvEnv = createInnerEnv outerEnv argumentNames args
                 let expandedAst = evalAst macroEnvEnv body
                 macroexpand env expandedAst
@@ -58,6 +58,7 @@ module rec Evaluator =
 
     let rec evalAst (env: Env) (ast: Ast) : Ast =
         let expandedAst = macroexpand env ast
+
         match expandedAst with
         | Ast.Symbol symbolName -> env.Resolve(symbolName)
 
@@ -77,8 +78,8 @@ module rec Evaluator =
                 match asts with
                 | Ast.Symbol symbolName :: valueAst :: _ ->
                     match evalAst env valueAst with
-                    | Ast.UserDefinedFunction (false, env, argumentNames, bodyAst) ->
-                        let macro = Ast.UserDefinedFunction(true, env, argumentNames, bodyAst)
+                    | Ast.UserDefinedFunction (env, argumentNames, bodyAst) ->
+                        let macro = Ast.Macro(env, argumentNames, bodyAst)
                         env.Set(symbolName, macro)
                         macro
                     | _ -> evalError "Invalid defmacro!" ast
@@ -126,7 +127,7 @@ module rec Evaluator =
                 | Ast.Vector argumentNameAsts :: bodyAst :: _
                 | Ast.List argumentNameAsts :: bodyAst :: _ ->
                     let argumentNames = List.map Ast.unwrapSymbol argumentNameAsts
-                    Ast.UserDefinedFunction(false, env, argumentNames, bodyAst)
+                    Ast.UserDefinedFunction(env, argumentNames, bodyAst)
 
                 | _ -> evalError "Invalid let*" ast
 
@@ -153,7 +154,7 @@ module rec Evaluator =
                 match evalAst env operationAst with
                 | Ast.CoreFunction func -> argumentAsts |> List.map (evalAst env) |> func
 
-                | Ast.UserDefinedFunction (false, outerEnv, argumentNames, body) ->
+                | Ast.UserDefinedFunction (outerEnv, argumentNames, body) ->
                     let functionEnv =
                         argumentAsts
                         |> List.map (evalAst env)
